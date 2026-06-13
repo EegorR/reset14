@@ -74,6 +74,18 @@
   .anchor b{color:var(--txt);}
   .hidden{display:none;}
   .resetbtn{background:none;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:9px 14px;font-size:12px;cursor:pointer;}
+  /* insights */
+  .wkcompare{display:flex;gap:10px;margin-bottom:12px;}
+  .wkcol{flex:1;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:10px 11px;}
+  .wkcol h4{margin:0 0 7px;font-size:11.5px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.03em;}
+  .wkcol .row{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;margin:4px 0;}
+  .wkcol .row b{font-variant-numeric:tabular-nums;font-size:13.5px;}
+  .insight{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;padding:9px 11px;background:var(--card2);
+    border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;margin-top:7px;}
+  .insight .emo{font-size:15px;line-height:1.25;flex-shrink:0;}
+  .insight.good{border-left-color:var(--green);}
+  .insight.warn{border-left-color:var(--amber);}
+  .insight-empty{font-size:12.5px;color:var(--muted);line-height:1.5;}
   /* empty-moment modal */
   .overlay{position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:40;display:none;
     align-items:center;justify-content:center;padding:20px;}
@@ -121,6 +133,12 @@
     </div>
     <div class="daygrid" id="week2"></div>
     <div class="note red">Если за 14 дней честной работы ничего не сдвинулось — это сигнал обратиться к психотерапевту/психиатру. Это не провал. 🚩 Если появятся мысли, что не хочется жить — обращайся за помощью сразу.</div>
+  </div>
+
+  <div class="panel" id="insightsPanel">
+    <div class="chartttl">Инсайты по твоим данным</div>
+    <div class="wkcompare" id="weekCompare"></div>
+    <div id="insightList"></div>
   </div>
 
   <div class="anchor"><b>Якорь системы — подъём в одно время.</b> Сорвал всё остальное, но встал вовремя и вышел на свет — день засчитан.</div>
@@ -250,6 +268,7 @@ function render(){
   document.getElementById('sGym').textContent=g+'/6';
   document.getElementById('bGym').style.width=Math.round(g/6*100)+'%';
   drawChart();
+  renderInsights();
 }
 
 function drawChart(){
@@ -270,6 +289,58 @@ function drawChart(){
   document.getElementById('chart').innerHTML=g;
 }
 
+const HAB_NAME={rise:'Подъём вовремя',light:'Свет утром',move:'Движение',care:'Уход за собой',notok:'Без TikTok',noalc:'Без алкоголя',eat:'Ел осознанно',bed:'Лёг до 1:00',nonic:'Без никотина',gym:'Зал'};
+function renderInsights(){
+  const compEl=document.getElementById('weekCompare');
+  const listEl=document.getElementById('insightList');
+  const logged=[];
+  for(let d=1;d<=14;d++){ const st=state[d]||{}; if(dayHabits(d).some(x=>st[x.k])||st.mood) logged.push(d); }
+  const moodOf=d=>(state[d]||{}).mood;
+  const avg=ds=>{const m=ds.map(moodOf).filter(Boolean); return m.length?m.reduce((a,b)=>a+b,0)/m.length:null;};
+  const cnt=ds=>ds.map(moodOf).filter(Boolean).length;
+  function wk(a,b){ let done=0,tot=0,anchor=0; const days=[];
+    for(let d=a;d<=b;d++){ const st=state[d]||{}, p=dayPct(d); done+=p.done; tot+=p.total; if(st.rise&&st.light)anchor++; days.push(d); }
+    return {pct:tot?Math.round(done/tot*100):0, avg:avg(days), anchor}; }
+  const w1=wk(1,7), w2=wk(8,14);
+  compEl.innerHTML=`
+    <div class="wkcol"><h4>Неделя 1</h4>
+      <div class="row"><span>Привычки</span><b>${w1.pct}%</b></div>
+      <div class="row"><span>Настроение</span><b>${w1.avg?w1.avg.toFixed(1):'—'}</b></div>
+      <div class="row"><span>Якорь</span><b>${w1.anchor}/7</b></div></div>
+    <div class="wkcol"><h4>Неделя 2</h4>
+      <div class="row"><span>Привычки</span><b>${w2.pct}%</b></div>
+      <div class="row"><span>Настроение</span><b>${w2.avg?w2.avg.toFixed(1):'—'}</b></div>
+      <div class="row"><span>Якорь</span><b>${w2.anchor}/7</b></div></div>`;
+  if(logged.length<2){ listEl.innerHTML='<div class="insight-empty">Отмечай дни — через пару дней здесь появятся выводы по твоим данным: тренд настроения, что тянет вверх и где провисаешь.</div>'; return; }
+  const out=[];
+  if(w1.avg!=null && w2.avg!=null){
+    const diff=w2.avg-w1.avg;
+    if(diff>=0.4) out.push(['📈','good',`Настроение растёт: 2-я неделя ${w2.avg.toFixed(1)} против ${w1.avg.toFixed(1)} в 1-й (+${diff.toFixed(1)}).`]);
+    else if(diff<=-0.4) out.push(['📉','warn',`Во 2-й неделе настроение просело: ${w2.avg.toFixed(1)} против ${w1.avg.toFixed(1)}. Глянь, что изменилось в режиме.`]);
+    else out.push(['➖','',`Настроение держится ровно, около ${((w1.avg+w2.avg)/2).toFixed(1)}.`]);
+  }
+  const gymDs=logged.filter(d=>gymDays[d]), restDs=logged.filter(d=>!gymDays[d]);
+  if(cnt(gymDs)>=2 && cnt(restDs)>=2){
+    const ga=avg(gymDs), ra=avg(restDs);
+    if(ga-ra>=0.3) out.push(['🏋️','good',`В дни зала настроение выше: ${ga.toFixed(1)} против ${ra.toFixed(1)}. Движение работает.`]);
+    else if(ra-ga>=0.3) out.push(['🤔','',`В дни зала настроение пока ниже (${ga.toFixed(1)} против ${ra.toFixed(1)}) — возможно, перегруз. Сделай зал легче.`]);
+  }
+  const okDs=logged.filter(d=>(state[d]||{}).notok), badDs=logged.filter(d=>!(state[d]||{}).notok);
+  if(cnt(okDs)>=2 && cnt(badDs)>=2){
+    const oa=avg(okDs), ba=avg(badDs);
+    if(oa-ba>=0.3) out.push(['📵','good',`Без TikTok настроение заметно выше: ${oa.toFixed(1)} против ${ba.toFixed(1)}. Залипание тянет вниз.`]);
+  }
+  const baseKeys=['rise','light','move','care','notok','noalc','eat','bed'];
+  const rates=baseKeys.map(k=>{ let done=0; logged.forEach(d=>{ if((state[d]||{})[k])done++; }); return {k,done,tot:logged.length,rate:done/logged.length}; }).sort((a,b)=>b.rate-a.rate);
+  if(rates.length){
+    const best=rates[0], weak=rates[rates.length-1];
+    if(best.done>0) out.push(['💪','good',`Лучше всего держишь «${HAB_NAME[best.k]}»: ${best.done} из ${best.tot} дней.`]);
+    if(weak.rate<0.5 && weak.tot>=3) out.push(['🎯','warn',`Слабое место — «${HAB_NAME[weak.k]}»: ${weak.done} из ${weak.tot}. Возьми в фокус.`]);
+  }
+  let anchorDays=0; logged.forEach(d=>{ const st=state[d]||{}; if(st.rise&&st.light)anchorDays++; });
+  out.push(['⚓','',`Якорь (подъём + свет) выполнен в ${anchorDays} из ${logged.length} отмеченных дней.`]);
+  listEl.innerHTML=out.map(([emo,cls,txt])=>`<div class="insight ${cls}"><span class="emo">${emo}</span><span>${txt}</span></div>`).join('');
+}
 function toggleWeek(w){document.getElementById('week'+w).classList.toggle('hidden');}
 function resetAll(){
   const go=()=>{ state={meta:{start:new Date().toISOString().slice(0,10)}}; save(); render(); };
