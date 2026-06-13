@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Перезагрузка · 14 дней</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root{
+    /* fallbacks; overridden by Telegram theme at runtime */
+    --bg:var(--tg-theme-bg-color,#0f1115);
+    --card:var(--tg-theme-secondary-bg-color,#181b22);
+    --card2:#1f232b;
+    --line:#2a2f3a;
+    --txt:var(--tg-theme-text-color,#e8eaed);
+    --muted:var(--tg-theme-hint-color,#9aa0ac);
+    --accent:var(--tg-theme-button-color,#5b8def);
+    --accentTxt:var(--tg-theme-button-text-color,#ffffff);
+    --link:var(--tg-theme-link-color,#5b8def);
+    --green:#3ecf8e; --amber:#f0b429; --red:#f06a6a; --radius:14px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5;}
+  body{padding:16px 14px calc(90px + env(safe-area-inset-bottom));}
+  .wrap{max-width:560px;margin:0 auto;}
+  h1{font-size:21px;margin:0 0 3px;}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:18px;}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:15px;margin-bottom:14px;}
+  .statrow{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+  .stat{flex:1;min-width:96px;background:var(--card);border:1px solid var(--line);
+    border-radius:var(--radius);padding:12px 13px;}
+  .stat .num{font-size:23px;font-weight:700;}
+  .stat .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;}
+  .bar{height:7px;background:var(--card2);border-radius:6px;overflow:hidden;margin-top:7px;}
+  .bar>span{display:block;height:100%;background:var(--green);width:0;transition:width .3s;}
+  .legend{font-size:11.5px;color:var(--muted);margin-top:5px;margin-bottom:16px;}
+  .chartttl{font-size:12.5px;color:var(--muted);margin-bottom:6px;}
+  svg{display:block;width:100%;height:auto;}
+  .weekhdr{display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
+  .weekhdr h2{font-size:16px;margin:0;}
+  .weekhdr .meta{font-size:12.5px;color:var(--muted);}
+  .daygrid{margin-top:12px;display:flex;flex-direction:column;gap:8px;}
+  .day{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px 11px;scroll-margin-top:14px;}
+  .day.today{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);}
+  .dayhdr{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;}
+  .daynum{font-weight:700;font-size:13.5px;}
+  .datelbl{font-size:10.5px;color:var(--muted);}
+  .todaybadge{font-size:9.5px;background:var(--accent);color:var(--accentTxt);border-radius:6px;padding:1px 7px;font-weight:600;}
+  .daytag{font-size:10.5px;color:var(--muted);}
+  .gympill{color:var(--accent);}
+  .daypct{margin-left:auto;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .habits{display:flex;flex-wrap:wrap;gap:6px;}
+  .habit{display:inline-flex;align-items:center;gap:6px;background:var(--card);
+    border:1px solid var(--line);border-radius:20px;padding:6px 11px 6px 8px;
+    font-size:12.5px;cursor:pointer;user-select:none;transition:.12s;white-space:nowrap;}
+  .habit .box{width:15px;height:15px;border-radius:5px;border:1.5px solid var(--muted);
+    display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:#fff;}
+  .habit.on{background:rgba(62,207,142,.14);border-color:var(--green);}
+  .habit.on .box{background:var(--green);border-color:var(--green);}
+  .habit.gym.on{background:rgba(91,141,239,.16);border-color:var(--accent);}
+  .habit.gym.on .box{background:var(--accent);border-color:var(--accent);}
+  .mood{display:flex;align-items:center;gap:8px;margin-top:9px;font-size:12px;color:var(--muted);}
+  .mood .dots{display:flex;gap:5px;}
+  .mdot{width:26px;height:26px;border-radius:7px;border:1px solid var(--line);background:var(--card);
+    display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;transition:.12s;}
+  .mdot.sel{background:var(--accent);border-color:var(--accent);color:var(--accentTxt);font-weight:700;}
+  .note{font-size:12.5px;color:var(--muted);background:var(--card2);border-left:3px solid var(--amber);
+    padding:10px 11px;border-radius:0 8px 8px 0;margin-top:11px;}
+  .note.red{border-color:var(--red);}
+  .anchor{font-size:12.5px;color:var(--muted);margin-top:10px;}
+  .anchor b{color:var(--txt);}
+  .hidden{display:none;}
+  .resetbtn{background:none;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:9px 14px;font-size:12px;cursor:pointer;}
+  /* empty-moment modal */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:40;display:none;
+    align-items:center;justify-content:center;padding:20px;}
+  .overlay.show{display:flex;}
+  .modal{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:24px 22px;max-width:400px;width:100%;text-align:center;}
+  .modal .kick{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
+  .modal .act{font-size:19px;font-weight:700;margin:12px 0 6px;line-height:1.35;}
+  .modal .hint{font-size:12.5px;color:var(--muted);margin-bottom:18px;}
+  .modal .btns{display:flex;gap:10px;}
+  .modal button{flex:1;border-radius:10px;padding:12px;font-size:14px;cursor:pointer;border:1px solid var(--line);}
+  .modal .again{background:var(--card2);color:var(--txt);}
+  .modal .did{background:var(--green);color:#08120c;border-color:var(--green);font-weight:700;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Перезагрузка · 14 дней</h1>
+  <div class="sub">Чини сон, снижай лёгкие стимулы, возвращай чувствительность. Тапай по пунктам — всё сохраняется.</div>
+
+  <div class="statrow">
+    <div class="stat"><div class="num" id="sOverall">0%</div><div class="lbl">Прогресс</div><div class="bar"><span id="bOverall"></span></div></div>
+    <div class="stat"><div class="num" id="sStreak">0</div><div class="lbl">Серия дней*</div></div>
+    <div class="stat"><div class="num" id="sGym">0/6</div><div class="lbl">Тренировки</div><div class="bar"><span id="bGym"></span></div></div>
+  </div>
+  <div class="legend">*Серия: день с выполненным якорём — <b>подъём вовремя</b> + <b>свет утром</b>.</div>
+
+  <div class="panel">
+    <div class="chartttl">Настроение / энергия по дням (1–5) — главный индикатор</div>
+    <svg id="chart" viewBox="0 0 700 220" preserveAspectRatio="none"></svg>
+  </div>
+
+  <div class="panel">
+    <div class="weekhdr" onclick="toggleWeek(1)">
+      <div><h2>Неделя 1 — чиним сон</h2><div class="meta">Только база. Никотин пока не трогаем.</div></div>
+      <div class="meta" id="w1meta">0%</div>
+    </div>
+    <div class="daygrid" id="week1"></div>
+    <div class="note">Дни 3–5 будут самыми пустыми — система перекалибровывается. Это нормально. Не затыкай пустоту стимулом — выйди на движение. Зал на этой неделе лёгкий, без отказа.</div>
+  </div>
+
+  <div class="panel">
+    <div class="weekhdr" onclick="toggleWeek(2)">
+      <div><h2>Неделя 2 — возвращаем чувствительность</h2><div class="meta">Сон держим. Бросаем никотин. Зал — нормальный.</div></div>
+      <div class="meta" id="w2meta">0%</div>
+    </div>
+    <div class="daygrid" id="week2"></div>
+    <div class="note red">Если за 14 дней честной работы ничего не сдвинулось — это сигнал обратиться к психотерапевту/психиатру. Это не провал. 🚩 Если появятся мысли, что не хочется жить — обращайся за помощью сразу.</div>
+  </div>
+
+  <div class="anchor"><b>Якорь системы — подъём в одно время.</b> Сорвал всё остальное, но встал вовремя и вышел на свет — день засчитан.</div>
+  <div style="margin-top:16px"><button class="resetbtn" onclick="resetAll()">Сбросить прогресс</button></div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="kick">Не думай — просто сделай</div>
+    <div class="act" id="emptyAct"></div>
+    <div class="hint">Не жди, что захочется. Делаешь — интерес приходит потом.</div>
+    <div class="btns">
+      <button class="again" onclick="rollEmpty()">Другое</button>
+      <button class="did" onclick="closeEmpty()">Сделал</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- Telegram WebApp init ----------
+const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+if(tg){ tg.ready(); tg.expand(); try{tg.setHeaderColor('secondary_bg_color');}catch(e){} }
+function haptic(type){ try{ if(tg&&tg.HapticFeedback) tg.HapticFeedback.impactOccurred(type||'light'); }catch(e){} }
+
+// ---------- storage: Telegram CloudStorage with localStorage fallback ----------
+const SKEY='reset14';
+const cloud = tg && tg.CloudStorage && tg.isVersionAtLeast && tg.isVersionAtLeast('6.9') ? tg.CloudStorage : null;
+let state = {};
+function loadState(cb){
+  if(cloud){
+    cloud.getItem(SKEY,(err,val)=>{
+      if(!err && val){ try{state=JSON.parse(val);}catch(e){state={};} }
+      ensureMeta(); cb();
+    });
+  } else {
+    try{state=JSON.parse(localStorage.getItem(SKEY)||'{}');}catch(e){state={};}
+    ensureMeta(); cb();
+  }
+}
+function ensureMeta(){ if(!state.meta) state.meta={start:new Date().toISOString().slice(0,10)}; }
+function save(){
+  const s=JSON.stringify(state);
+  if(cloud){ cloud.setItem(SKEY,s,()=>{}); }
+  else { localStorage.setItem(SKEY,s); }
+}
+
+// ---------- plan data ----------
+const habitsBase = [
+  {k:'rise',  t:'🌅 Подъём вовремя'},
+  {k:'light', t:'☀️ Свет утром'},
+  {k:'move',  t:'🚶 Движение'},
+  {k:'care',  t:'🧼 Уход за собой'},
+  {k:'notok', t:'📵 Без TikTok'},
+  {k:'noalc', t:'🍷 Без алкоголя'},
+  {k:'eat',   t:'🍽️ Ел осознанно'},
+  {k:'bed',   t:'🌙 Лёг до 1:00'},
+];
+const gymDays = {2:true,4:true,6:true,9:true,11:true,13:true};
+const week2Extra = {k:'nonic', t:'🚭 Без никотина'};
+const emptyActions = [
+  'Выйди на улицу и пройдись 10 минут',
+  'Умойся холодной водой',
+  '20 приседаний прямо сейчас',
+  'Прибери один угол / стол',
+  'Налей воды и выпей стакан',
+  '10 глубоких вдохов у открытого окна',
+  'Сделай растяжку 5 минут',
+  'Напиши или позвони кому-то живому',
+  'Поставь таймер на 15 минут и сделай отложенное дело',
+  'Выйди на свет и просто постой 5 минут',
+  'Заправь кровать и переоденься',
+  'Помой посуду или протри кухню',
+];
+
+// ---------- date helpers ----------
+function dayDate(day){ const d=new Date(state.meta.start+'T00:00:00'); d.setDate(d.getDate()+(day-1)); return d; }
+function todayIndex(){
+  const t=new Date(); t.setHours(0,0,0,0);
+  const s=new Date(state.meta.start+'T00:00:00');
+  const diff=Math.round((t-s)/86400000)+1;
+  return (diff>=1&&diff<=14)?diff:0;
+}
+const RU_MONTH=['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
+function fmtDate(d){return d.getDate()+' '+RU_MONTH[d.getMonth()];}
+
+function dayHabits(day){
+  let h=[...habitsBase];
+  if(day>=8) h.splice(7,0,week2Extra);
+  if(gymDays[day]) h.push({k:'gym', t: day<8?'🏋️ Зал (лёгкий)':'🏋️ Зал', gym:true});
+  return h;
+}
+function toggle(day,k){ haptic('light'); state[day]=state[day]||{}; state[day][k]=!state[day][k]; save(); render(); }
+function setMood(day,v){ haptic('light'); state[day]=state[day]||{}; state[day].mood=(state[day].mood===v?null:v); save(); render(); }
+function dayPct(day){ const h=dayHabits(day), st=state[day]||{}; return {done:h.filter(x=>st[x.k]).length,total:h.length}; }
+
+function render(){
+  const ti=todayIndex();
+  [1,2].forEach(w=>{
+    const grid=document.getElementById('week'+w); grid.innerHTML='';
+    const start=w===1?1:8, end=w===1?7:14; let wDone=0,wTot=0;
+    for(let d=start; d<=end; d++){
+      const h=dayHabits(d), st=state[d]||{}, p=dayPct(d); wDone+=p.done; wTot+=p.total;
+      const div=document.createElement('div');
+      div.className='day'+(d===ti?' today':''); if(d===ti) div.id='todayCard';
+      div.innerHTML=`<div class="dayhdr"><span class="daynum">День ${d}</span>
+        <span class="datelbl">${fmtDate(dayDate(d))}</span>
+        ${d===ti?'<span class="todaybadge">сегодня</span>':''}
+        ${gymDays[d]?'<span class="daytag gympill">• день зала</span>':''}
+        <span class="daypct">${p.done}/${p.total}</span></div>
+        <div class="habits">${h.map(x=>`
+          <span class="habit ${x.gym?'gym':''} ${st[x.k]?'on':''}" onclick="toggle(${d},'${x.k}')">
+            <span class="box">${st[x.k]?'✓':''}</span>${x.t}</span>`).join('')}</div>
+        <div class="mood"><span>Состояние:</span><span class="dots">
+          ${[1,2,3,4,5].map(v=>`<span class="mdot ${st.mood===v?'sel':''}" onclick="setMood(${d},${v})">${v}</span>`).join('')}
+        </span></div>`;
+      grid.appendChild(div);
+    }
+    document.getElementById('w'+w+'meta').textContent = wTot?Math.round(wDone/wTot*100)+'%':'0%';
+  });
+  let done=0,tot=0; for(let d=1;d<=14;d++){const p=dayPct(d);done+=p.done;tot+=p.total;}
+  const pct=tot?Math.round(done/tot*100):0;
+  document.getElementById('sOverall').textContent=pct+'%';
+  document.getElementById('bOverall').style.width=pct+'%';
+  let streak=0; for(let d=1;d<=14;d++){const st=state[d]||{};if(st.rise&&st.light)streak++;else break;}
+  document.getElementById('sStreak').textContent=streak;
+  let g=0; Object.keys(gymDays).forEach(d=>{if((state[d]||{}).gym)g++;});
+  document.getElementById('sGym').textContent=g+'/6';
+  document.getElementById('bGym').style.width=Math.round(g/6*100)+'%';
+  drawChart();
+}
+
+function drawChart(){
+  const W=700,H=220,padL=28,padR=12,padT=14,padB=26; const ti=todayIndex();
+  const xs=d=>padL+(d-1)/13*(W-padL-padR), ys=v=>padT+(5-v)/4*(H-padT-padB);
+  let g='';
+  for(let v=1;v<=5;v++){const y=ys(v);
+    g+=`<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="#2a2f3a" stroke-width="1"/>`;
+    g+=`<text x="6" y="${y+4}" fill="#9aa0ac" font-size="11">${v}</text>`;}
+  for(let d=1;d<=14;d++){ if(d%2===1) g+=`<text x="${xs(d)-4}" y="${H-8}" fill="#9aa0ac" font-size="10">${d}</text>`; }
+  if(ti) g+=`<line x1="${xs(ti)}" y1="${padT}" x2="${xs(ti)}" y2="${H-padB}" stroke="#5b8def" stroke-width="1" stroke-dasharray="3 3" opacity="0.6"/>`;
+  const pts=[]; for(let d=1;d<=14;d++){const m=(state[d]||{}).mood;if(m)pts.push([d,m]);}
+  if(pts.length){
+    let path=''; pts.forEach((p,i)=>{path+=(i?'L':'M')+xs(p[0])+' '+ys(p[1])+' ';});
+    g+=`<path d="${path}" fill="none" stroke="#3ecf8e" stroke-width="2.5" stroke-linejoin="round"/>`;
+    pts.forEach(p=>{g+=`<circle cx="${xs(p[0])}" cy="${ys(p[1])}" r="4" fill="#3ecf8e"/>`;});
+  } else { g+=`<text x="${W/2-90}" y="${H/2}" fill="#9aa0ac" font-size="13">Отмечай состояние внизу каждого дня</text>`; }
+  document.getElementById('chart').innerHTML=g;
+}
+
+function toggleWeek(w){document.getElementById('week'+w).classList.toggle('hidden');}
+function resetAll(){
+  const go=()=>{ state={meta:{start:new Date().toISOString().slice(0,10)}}; save(); render(); };
+  if(tg && tg.showConfirm){ tg.showConfirm('Сбросить весь прогресс?',(ok)=>{if(ok)go();}); }
+  else if(confirm('Сбросить весь прогресс?')) go();
+}
+
+// ---------- empty-moment ----------
+function rollEmpty(){ haptic('light');
+  const el=document.getElementById('emptyAct'); let n;
+  do{n=emptyActions[Math.floor(Math.random()*emptyActions.length)];}while(n===el.textContent&&emptyActions.length>1);
+  el.textContent=n;
+}
+function openEmpty(){ haptic('medium'); rollEmpty(); document.getElementById('overlay').classList.add('show'); }
+function closeEmpty(){ haptic('light'); document.getElementById('overlay').classList.remove('show'); }
+document.getElementById('overlay').addEventListener('click',e=>{if(e.target.id==='overlay')closeEmpty();});
+
+// ---------- Telegram MainButton = "Мне сейчас пусто" ----------
+if(tg && tg.MainButton){
+  tg.MainButton.setText('😶 Мне сейчас пусто');
+  tg.MainButton.color = '#5b8def';
+  tg.MainButton.show();
+  tg.MainButton.onClick(openEmpty);
+} else {
+  // fallback floating button if opened outside Telegram
+  const b=document.createElement('button');
+  b.textContent='😶 Мне сейчас пусто';
+  b.style.cssText='position:fixed;right:16px;bottom:16px;z-index:30;background:#5b8def;color:#fff;border:none;border-radius:30px;padding:13px 20px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.4);';
+  b.onclick=openEmpty; document.body.appendChild(b);
+}
+
+// ---------- boot ----------
+loadState(()=>{
+  render();
+  const t=document.getElementById('todayCard');
+  if(t) setTimeout(()=>t.scrollIntoView({behavior:'smooth',block:'center'}),350);
+});
+</script>
+</body>
+</html>

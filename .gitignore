@@ -1,0 +1,16 @@
+# dependencies
+node_modules/
+
+# secrets / env
+.env
+.env.*
+
+# logs
+*.log
+npm-debug.log*
+
+# os
+.DS_Store
+
+# claude code local settings
+.claude/
